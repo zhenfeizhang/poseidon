@@ -6,9 +6,10 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-halo2curves = { git = 'https://github.com/privacy-scaling-explorations/halo2curves.git', tag = '0.3.2' }
-subtle = { version = "2.3", default-features = false }
+halo2curves = "0.1.0"
+subtle = "2.5"
 
 [dev-dependencies]
+goldilocks = { git = "https://github.com/zhenfeizhang/Goldilocks" }
 rand_core = { version = "0.6", default-features = false }
 paste = "1.0.7"

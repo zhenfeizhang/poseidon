@@ -51,8 +51,11 @@ impl<F: PrimeField, const T: usize, const RATE: usize> Spec<F, T, RATE> {
 mod tests {
     use super::State;
     use crate::spec::{tests::SpecRef, Spec};
+    use goldilocks::Goldilocks;
     use halo2curves::bn256::Fr;
+    use halo2curves::ff::FromUniformBytes;
     use halo2curves::group::ff::PrimeField;
+    use halo2curves::serde::SerdeObject;
 
     /// We want to keep non-optimized poseidon construction and permutation to
     /// cross test with optimized one
@@ -82,7 +85,11 @@ mod tests {
 
     #[test]
     fn cross_test() {
-        use halo2curves::group::ff::Field;
+        cross_test_internal::<Fr>();
+        cross_test_internal::<Goldilocks>();
+    }
+
+    fn cross_test_internal<F: FromUniformBytes<64> + SerdeObject>() {
         use rand_core::OsRng;
         use std::time::Instant;
 
@@ -98,15 +105,15 @@ mod tests {
                         const RATE: usize = $RATE;
                         let mut state = State(
                             (0..T)
-                                .map(|_| Fr::random(OsRng))
-                                .collect::<Vec<Fr>>()
+                                .map(|_| F::random(OsRng))
+                                .collect::<Vec<F>>()
                                 .try_into().unwrap(),
                         );
-                        let spec = SpecRef::<Fr, T, RATE>::new(R_F, R_P);
+                        let spec = SpecRef::<F, T, RATE>::new(R_F, R_P);
                         let mut state_expected = state.clone();
                         spec.permute(&mut state_expected);
 
-                        let spec = Spec::<Fr, T, RATE>::new(R_F, R_P);
+                        let spec = Spec::<F, T, RATE>::new(R_F, R_P);
                         let now = Instant::now();
                         {
                             spec.permute(&mut state);
@@ -118,6 +125,7 @@ mod tests {
                 )*
             };
         }
+        // params for BN fields
         run_test!([8, 57, 3, 2]);
         run_test!([8, 57, 4, 3]);
         run_test!([8, 57, 5, 4]);
@@ -126,6 +134,9 @@ mod tests {
         run_test!([8, 57, 8, 7]);
         run_test!([8, 57, 9, 8]);
         run_test!([8, 57, 10, 9]);
+        // params for Goldilocks fields
+        run_test!([8, 22, 4, 3]);
+        run_test!([8, 22, 12, 11]);
     }
 
     #[test]

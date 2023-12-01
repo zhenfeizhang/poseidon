@@ -72,23 +72,39 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, 
 #[cfg(test)]
 mod tests {
     use crate::{Poseidon, State};
+    use goldilocks::Goldilocks;
     use halo2curves::bn256::Fr;
+    use halo2curves::ff::FromUniformBytes;
     use halo2curves::group::ff::Field;
     use paste::paste;
     use rand_core::OsRng;
 
     const R_F: usize = 8;
     const R_P: usize = 57;
-    const T: usize = 5;
-    const RATE: usize = 4;
+    const BN_T: usize = 5;
+    const BN_RATE: usize = 4;
+    const GOLDILOCKS_T: usize = 12;
+    const GOLDILOCKS_RATE: usize = 11;
 
-    fn gen_random_vec(len: usize) -> Vec<Fr> {
-        (0..len).map(|_| Fr::random(OsRng)).collect::<Vec<Fr>>()
+    fn gen_random_vec<F: Field>(len: usize) -> Vec<F> {
+        (0..len).map(|_| F::random(OsRng)).collect::<Vec<F>>()
     }
-
     #[test]
     fn poseidon_padding_with_last_chunk_len_is_not_rate_multiples() {
-        let mut poseidon = Poseidon::<Fr, T, RATE>::new(R_F, R_P);
+        poseidon_padding_with_last_chunk_len_is_not_rate_multiples_internal::<Fr, BN_T, BN_RATE>();
+        poseidon_padding_with_last_chunk_len_is_not_rate_multiples_internal::<
+            Goldilocks,
+            GOLDILOCKS_T,
+            GOLDILOCKS_RATE,
+        >();
+    }
+
+    fn poseidon_padding_with_last_chunk_len_is_not_rate_multiples_internal<
+        F: FromUniformBytes<64>,
+        const T: usize,
+        const RATE: usize,
+    >() {
+        let mut poseidon = Poseidon::<F, T, RATE>::new(R_F, R_P);
         let number_of_permutation = 5;
         let number_of_inputs = RATE * number_of_permutation - 1;
         let inputs = gen_random_vec(number_of_inputs);
@@ -98,11 +114,11 @@ mod tests {
 
         let spec = poseidon.spec.clone();
         let mut inputs = inputs.clone();
-        inputs.push(Fr::one());
+        inputs.push(F::ONE);
         assert!(inputs.len() % RATE == 0);
-        let mut state = State::<Fr, T>::default();
+        let mut state = State::<F, T>::default();
         for chunk in inputs.chunks(RATE) {
-            let mut inputs = vec![Fr::zero()];
+            let mut inputs = vec![F::ZERO];
             inputs.extend_from_slice(chunk);
             state.add_constants(&inputs.try_into().unwrap());
             spec.permute(&mut state)
@@ -113,26 +129,40 @@ mod tests {
     }
 
     #[test]
+
     fn poseidon_padding_with_last_chunk_len_is_rate_multiples() {
-        let mut poseidon = Poseidon::<Fr, T, RATE>::new(R_F, R_P);
+        poseidon_padding_with_last_chunk_len_is_rate_multiples_internal::<Fr, BN_T, BN_RATE>();
+        poseidon_padding_with_last_chunk_len_is_rate_multiples_internal::<
+            Goldilocks,
+            GOLDILOCKS_T,
+            GOLDILOCKS_RATE,
+        >();
+    }
+
+    fn poseidon_padding_with_last_chunk_len_is_rate_multiples_internal<
+        F: FromUniformBytes<64>,
+        const T: usize,
+        const RATE: usize,
+    >() {
+        let mut poseidon = Poseidon::<F, T, RATE>::new(R_F, R_P);
         let number_of_permutation = 5;
         let number_of_inputs = RATE * number_of_permutation;
         let inputs = (0..number_of_inputs)
-            .map(|_| Fr::random(OsRng))
-            .collect::<Vec<Fr>>();
+            .map(|_| F::random(OsRng))
+            .collect::<Vec<F>>();
         poseidon.update(&inputs[..]);
         let result_0 = poseidon.squeeze();
 
         let spec = poseidon.spec.clone();
         let mut inputs = inputs.clone();
-        let mut extra_padding = vec![Fr::zero(); RATE];
-        extra_padding[0] = Fr::one();
+        let mut extra_padding = vec![F::ZERO; RATE];
+        extra_padding[0] = F::ONE;
         inputs.extend(extra_padding);
 
         assert!(inputs.len() % RATE == 0);
-        let mut state = State::<Fr, T>::default();
+        let mut state = State::<F, T>::default();
         for chunk in inputs.chunks(RATE) {
-            let mut inputs = vec![Fr::zero()];
+            let mut inputs = vec![F::ZERO];
             inputs.extend_from_slice(chunk);
             state.add_constants(&inputs.try_into().unwrap());
             spec.permute(&mut state)
