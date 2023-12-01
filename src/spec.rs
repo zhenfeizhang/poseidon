@@ -55,8 +55,14 @@ impl<F: PrimeField, const T: usize> State<F, T> {
     }
 
     /// Second element of the state is the result
+    #[allow(dead_code)]
     pub(crate) fn result(&self) -> F {
         self.0[1]
+    }
+
+    /// Second element to the last lement of the state is the result
+    pub(crate) fn results(&self) -> &[F] {
+        &self.0[1..]
     }
 }
 

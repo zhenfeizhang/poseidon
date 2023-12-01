@@ -46,6 +46,11 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, 
 
     /// Results a single element by absorbing already added inputs
     pub fn squeeze(&mut self) -> F {
+        self.squeeze_vec()[0]
+    }
+
+    /// Results a single element by absorbing already added inputs
+    pub fn squeeze_vec(&mut self) -> Vec<F> {
         let mut last_chunk = self.absorbing.clone();
         {
             // Expect padding offset to be in [0, RATE)
@@ -65,7 +70,7 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, 
         // Flush the absorption line
         self.absorbing.clear();
         // Returns the challenge while preserving internal state
-        self.state.result()
+        self.state.results().to_vec()
     }
 }
 
