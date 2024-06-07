@@ -20,6 +20,14 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, 
         }
     }
 
+    /// Appends elements to the absorption line; assuming the `RATE` isn't full.
+    /// This is cheaper than `update` when absorbing line is not full, as it doesn't perform the two clones.
+    #[inline(always)]
+    pub fn update_without_permutation(&mut self, elements: &[F]) {
+        self.absorbing.extend_from_slice(elements);
+        assert!(self.absorbing.len() < RATE, "Absorbing line is full");
+    }
+
     /// Appends elements to the absorption line updates state while `RATE` is
     /// full
     pub fn update(&mut self, elements: &[F]) {
