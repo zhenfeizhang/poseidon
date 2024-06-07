@@ -57,7 +57,7 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, 
         self.squeeze_vec()[0]
     }
 
-    /// Results a single element by absorbing already added inputs
+    /// Results a vector of elements by absorbing already added inputs
     pub fn squeeze_vec(&mut self) -> Vec<F> {
         let mut last_chunk = self.absorbing.clone();
         {
@@ -79,6 +79,29 @@ impl<F: FromUniformBytes<64>, const T: usize, const RATE: usize> Poseidon<F, T, 
         self.absorbing.clear();
         // Returns the challenge while preserving internal state
         self.state.results().to_vec()
+    }
+
+    /// Results a vector of elements by absorbing already added inputs
+    /// the hash function should not be used further after this call
+    pub fn squeeze_vec_and_destroy(&mut self) -> &[F] {
+        let last_chunk = &mut self.absorbing;
+        {
+            // Expect padding offset to be in [0, RATE)
+            debug_assert!(last_chunk.len() < RATE);
+        }
+        // Add the finishing sign of the variable length hashing. Note that this mut
+        // also apply when absorbing line is empty
+        last_chunk.push(F::ONE);
+        // Add the last chunk of inputs to the state for the final permutation cycle
+
+        for (input_element, state) in last_chunk.iter().zip(self.state.0.iter_mut().skip(1)) {
+            state.add_assign(input_element);
+        }
+
+        // Perform final permutation
+        self.spec.permute(&mut self.state);
+        // Returns the challenge while preserving internal state
+        self.state.results()
     }
 }
 
